@@ -69,9 +69,8 @@ then to Cloudflare DNS over Tor.
       - ./config/letsencrypt/credentials.txt:/credentials.txt
     entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
 ```
-4. `docker-compose up -d pihole autoheal ouroboros`
-5. `docker-compose up -d nginx` and you are done :-)
+4. `docker-compose up -d` and you are done :-)
 
 ## TODO
 
-Configure images to wait for deps
+?
