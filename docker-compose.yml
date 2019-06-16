@@ -1,0 +1,139 @@
+version: '3'
+services:
+  pihole:
+    container_name: pihole
+    image: pihole/pihole:latest
+    restart: unless-stopped
+    ports:
+      - 53:53/tcp
+      - 53:53/udp
+    environment:
+      - TZ=${TZ}
+      - DNS1=172.29.1.3
+      - DNS2=no
+      - ServerIP=172.29.1.2
+      - WEBPASSWORD=${PIHOLE_PASSWORD}
+      - VIRTUAL_HOST=${DNS_DOMAIN_NAME}
+    volumes:
+      - ./config/pihole/:/etc/pihole/
+      - ./config/dnsmasq.d/:/etc/dnsmasq.d/
+    dns: 127.0.0.1
+    depends_on:
+      - stubby
+    networks:
+        private:
+            ipv4_address: 172.29.1.2
+
+  stubby:
+    image: stubby-dns:latest
+    container_name: stubby
+    build:
+        context: images/stubby
+    dns: 127.0.0.1
+    restart: unless-stopped
+    extra_hosts:
+        - 'dns4torpnlfs2ifuz2s2yf3fc7rdmsbhm6rw75euj35pac6ap25zgqad.onion:172.29.1.4'
+    volumes:
+      - ./config/stubby:/usr/local/etc/stubby
+    depends_on:
+        - socat
+    networks:
+        private:
+            ipv4_address: 172.29.1.3
+
+  doh-server:
+    image: dns-over-https:latest
+    container_name: doh-server
+    build:
+        context: images/doh-server
+    dns: 172.29.1.2
+    restart: unless-stopped
+    depends_on:
+        - pihole
+    volumes:
+      - ./config/doh-server.conf:/doh-server.conf:ro
+    networks:
+        - private
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    dns: 172.29.1.2
+    ports:
+      - 80:80/tcp
+      - 443:443/tcp
+      - 853:853/tcp
+    restart: unless-stopped
+    depends_on:
+        - doh-server
+    environment:
+        - DOMAIN_NAME=${DOMAIN_NAME}
+        - DNS_DOMAIN_NAME=${DNS_DOMAIN_NAME}
+    volumes:
+      - ./config/nginx/nginx.conf:/tmp/nginx.template:ro
+      - ./config/nginx/dns-over-tls:/tmp/dns-over-tls:ro
+      - ./config/letsencrypt/etc:/etc/letsencrypt:ro
+      - ./config/letsencrypt/var:/var/lib/letsencrypt:ro
+    networks:
+        - private
+    command: /bin/bash -c "envsubst '$$DOMAIN_NAME $$DNS_DOMAIN_NAME' < /tmp/nginx.template > /etc/nginx/nginx.conf &&
+                           mkdir -p /etc/nginx/streams/ &&
+                           envsubst '$$DOMAIN_NAME' < /tmp/dns-over-tls > /etc/nginx/streams/dns-over-tls &&
+                           nginx"
+
+  socat:
+    image: socat
+    container_name: socat
+    build:
+        context: images/socat
+    dns: 172.29.1.2
+    restart: unless-stopped
+    depends_on:
+      - tor
+    networks:
+        private:
+            ipv4_address: 172.29.1.4
+
+  tor:
+    image: tor
+    container_name: tor
+    build:
+        context: images/tor
+    dns: 172.29.1.2
+    restart: unless-stopped
+    volumes:
+        - ./config/tor/torrc:/etc/tor/torrc
+    networks:
+        - private
+
+  ouroboros:
+    container_name: ouroboros
+    image: pyouroboros/ouroboros:latest
+    restart: unless-stopped
+    dns: 172.29.1.2
+    environment:
+      - SELF_UPDATE=true
+      - CLEANUP=true
+      - INTERVAL=3600
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+        - private
+
+  autoheal:
+    image: willfarrell/autoheal
+    container_name: autoheal
+    dns: 172.29.1.2
+    restart: always
+    environment:
+      - AUTOHEAL_CONTAINER_LABEL=all
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+        - private
+
+networks:
+    private:
+        ipam:
+            config:
+                - subnet: 172.29.1.0/24

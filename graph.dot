@@ -4,8 +4,9 @@ digraph G {
     style=filled;
     color=lightgrey;
     node [style=filled,color=white];
-    pomerium -> doh_server -> pihole_dns;
-    unbound_dns -> pihole_dns
+    nginx -> pihole_web_ui [label="HTTPS"];
+    nginx -> doh_server -> pihole_dns;
+    nginx -> pihole_dns;
     pihole_dns -> stubby_dns;
     label = "your-dns";
     subgraph cluster_1 {
@@ -16,8 +17,9 @@ digraph G {
         pihole_web_ui;
     }
   }
-  client -> pomerium [label="DNS-over-HTTPS"];
-  client -> pihole_web_ui [label="HTTPS\n(via pomerium)"];
-  client -> unbound_dns [label="DNS-over-TLS"];
-  stubby_dns -> google_dns [label="DNS-over-TLS"];
+  client -> nginx [label="HTTPS"];
+  client -> nginx [label="DNS-over-HTTPS"];
+  client -> nginx [label="DNS-over-TLS"];
+  client -> pihole_dns [label="Standard DNS"];
+  stubby_dns -> cloudflare_hidden_service [label="DoT via Tor"];
 }
