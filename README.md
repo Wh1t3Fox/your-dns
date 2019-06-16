@@ -61,7 +61,7 @@ then to Cloudflare DNS over Tor.
   certbot:
     image: certbot/dns-cloudflare:latest
     container_name: certbot
-    dns: 172.29.1.2
+    dns: 172.29.1.254
     restart: unless-stopped
     volumes:
       - ./config/letsencrypt/etc:/etc/letsencrypt
