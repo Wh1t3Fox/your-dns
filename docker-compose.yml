@@ -105,6 +105,9 @@ services:
     image: certbot/dns-cloudflare:latest
     container_name: certbot
     restart: unless-stopped
+    environment:
+      - EMAIL=${EMAIL}
+      - DOMAIN_NAME=${DOMAIN_NAME}
     volumes:
       - ./config/letsencrypt/etc:/etc/letsencrypt
       - ./config/letsencrypt/var:/var/lib/letsencrypt

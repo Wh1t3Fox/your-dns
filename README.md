@@ -49,13 +49,12 @@ DNS-over-TLS service on port 853 and foward your request through PiHole
 then to Cloudflare DNS over Tor.
 
 1. Modify `.env` file. See the comment in that file for instructions.
-2. Create a `letsencrypt` directory in the config directory, create a 
-  `credentials.txt` file with your
+2. Update `config/letsencrypt/credentials.txt` with your
    Cloudflare API key (See
    https://certbot-dns-cloudflare.readthedocs.io/en/stable/#credentials
    for reference)
 3. Run the following command which should success.
 ```
-docker-compose run --entrypoint="certbot certonly --email ${YOUR_EMAIL:?} -d *.${DOMAIN_NAME:?},${DOMAIN_NAME:?} --rsa-key-size=4096 --agree-tos --force-renewal --dns-cloudflare-credentials /credentials.txt --dns-cloudflare" certbot
+docker-compose run --entrypoint="certbot certonly --email ${EMAIL:?} -d *.${DOMAIN_NAME:?},${DOMAIN_NAME:?} --rsa-key-size=4096 --agree-tos --force-renewal --dns-cloudflare-credentials /credentials.txt --dns-cloudflare" certbot
 ```
 4. Run `docker-compose up -d`
