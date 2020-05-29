@@ -29,10 +29,6 @@ Hide your DNS query from upstream recursive DNS server.
    ([doc](https://dnsprivacy.org/wiki/display/DP/Configuring+Stubby))
 1. [DNS-over-HTTPS](https://github.com/m13253/dns-over-https): A DoH
    server.
-1. [Autoheal](https://github.com/willfarrell/docker-autoheal):
-   Auto-restart container that failed health check.
-1. [Ouroboros](https://github.com/pyouroboros/ouroboros): Auto-pull
-   latest version of each container.
 
 ## Prerequisites
 
@@ -53,24 +49,13 @@ DNS-over-TLS service on port 853 and foward your request through PiHole
 then to Cloudflare DNS over Tor.
 
 1. Modify `.env` file. See the comment in that file for instructions.
-2. Use your favorite ACME client to create free certificate from Let's
-   Encrypt and save it in `./letsencrypt` directory. If your domain
-   name's NS is Cloudflare, the following is an example on how to do it
-   within docker:
+2. Create a `letsencrypt` directory in the config directory, create a 
+  `credentials.txt` file with your
+   Cloudflare API key (See
+   https://certbot-dns-cloudflare.readthedocs.io/en/stable/#credentials
+   for reference)
+3. Run the following command which should success.
 ```
-  certbot:
-    image: certbot/dns-cloudflare:latest
-    container_name: certbot
-    dns: 172.29.1.254
-    restart: unless-stopped
-    volumes:
-      - ./config/letsencrypt/etc:/etc/letsencrypt
-      - ./config/letsencrypt/var:/var/lib/letsencrypt
-      - ./config/letsencrypt/credentials.txt:/credentials.txt
-    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+docker-compose run --entrypoint="certbot certonly --email ${YOUR_EMAIL:?} -d *.${DOMAIN_NAME:?},${DOMAIN_NAME:?} --rsa-key-size=4096 --agree-tos --force-renewal --dns-cloudflare-credentials /credentials.txt --dns-cloudflare" certbot
 ```
-4. `docker-compose up -d` and you are done :-)
-
-## TODO
-
-?
+4. Run `docker-compose up -d`
